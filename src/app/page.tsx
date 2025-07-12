@@ -1,103 +1,205 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useRef, useState } from "react";
+
+export default function CanvasImageLoader() {
+  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png")
+
+  const [dragging, setDragging] = useState(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [startMousePos, setStartMousePos] = useState({ x: 0, y: 0 });
+  const [startOffset, setStartOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (!canvasRef.current) return;
+      setDragging(true);
+      setStartMousePos({ x: e.clientX, y: e.clientY });
+      setStartOffset({ ...offset });
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragging) return;
+      const dx = e.clientX - startMousePos.x;
+      const dy = e.clientY - startMousePos.y;
+      setOffset({
+        x: startOffset.x + dx,
+        y: startOffset.y + dy,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setDragging(false);
+    };
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    canvas.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [dragging, offset, startMousePos, startOffset]);
+
+
+  useEffect(() => {
+    const bgCanvas = bgCanvasRef.current;
+    const ctx = bgCanvas?.getContext("2d");
+    if (!bgCanvas || !ctx) return;
+
+    const bgImg = new Image();
+    bgImg.src = "/background.jpg"; // Your image in the public folder
+
+    const drawCovered = () => {
+      const cw = window.innerWidth;
+      const ch = window.innerHeight;
+      bgCanvas.width = cw;
+      bgCanvas.height = ch;
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      const iw = bgImg.width;
+      const ih = bgImg.height;
+
+      const scale = Math.max(cw / iw, ch / ih);
+
+      const drawWidth = iw * scale;
+      const drawHeight = ih * scale;
+
+      const offsetX = (cw - drawWidth) / 2;
+      const offsetY = (ch - drawHeight) / 2;
+
+      ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
+    };
+
+    // const resizeCanvas = () => {
+    //   bgCanvas.width = window.innerWidth;
+    //   bgCanvas.height = window.innerHeight;
+
+    //   // Optionally scale image to fit the canvas, or just draw it at top-left
+    //   ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+    //   ctx.drawImage(img, 0, 0); // Or add scaling logic if desired
+    // };
+
+    bgImg.onload = () => {
+      drawCovered();
+      window.addEventListener("resize", drawCovered);
+    };
+
+  }, [])
+
+  const loadAndDrawImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new Image();
+    img.src = inputUrl;
+
+    img.onload = () => {
+      const finalScale = 0.125; // <- Desired final visible scale
+      const oversampleFactor = 2; // <- Draw internally at 2x res
+
+      const targetWidth = img.width * finalScale;
+      const targetHeight = img.height * finalScale;
+      const oversampledWidth = targetWidth * oversampleFactor;
+      const oversampledHeight = targetHeight * oversampleFactor;
+
+      // Step 1: progressively scale to oversampled size
+      let currentCanvas = document.createElement("canvas");
+      currentCanvas.width = img.width;
+      currentCanvas.height = img.height;
+
+      let currentCtx = currentCanvas.getContext("2d")!;
+      currentCtx.drawImage(img, 0, 0);
+
+      let currentWidth = img.width;
+      let currentHeight = img.height;
+
+      while (currentWidth * 0.85 > oversampledWidth) {
+        const nextWidth = Math.floor(currentWidth * 0.85);
+        const nextHeight = Math.floor(currentHeight * 0.85);
+
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = nextWidth;
+        tempCanvas.height = nextHeight;
+
+        const tempCtx = tempCanvas.getContext("2d")!;
+        tempCtx.imageSmoothingEnabled = true;
+        tempCtx.imageSmoothingQuality = "high";
+
+        tempCtx.drawImage(
+          currentCanvas,
+          0, 0, currentWidth, currentHeight,
+          0, 0, nextWidth, nextHeight
+        );
+
+        currentCanvas = tempCanvas;
+        currentCtx = tempCtx;
+        currentWidth = nextWidth;
+        currentHeight = nextHeight;
+      }
+
+      // Step 2: draw final image to visible canvas (at oversampled size)
+      canvas.width = oversampledWidth;
+      canvas.height = oversampledHeight;
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(currentCanvas, 0, 0, oversampledWidth, oversampledHeight);
+
+      // Step 3: set canvas style to display at target (¼) size
+      canvas.style.width = `${targetWidth}px`;
+      canvas.style.height = `${targetHeight}px`;
+    };
+
+    img.onerror = () => {
+      console.error("Failed to load image:", inputUrl);
+    };
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div>
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          type="text"
+          value={inputUrl}
+          onChange={(e) => setInputUrl(e.target.value)}
+          placeholder="/LOTR-EN01151.png"
+          style={{ width: "300px", marginRight: "10px"           }}
         />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+        <button onClick={loadAndDrawImage}>Load</button>
+      </div>
+    
+      <canvas
+        ref={bgCanvasRef}
+        style={{
+          position: "absolute",
+          zIndex: -1
+        }}
+      />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          zIndex: 0,
+          imageRendering: "auto",
+          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          cursor: dragging ? "grabbing" : "grab"
+        }}      />
     </div>
   );
 }
