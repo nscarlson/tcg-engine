@@ -1,75 +1,130 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
+import { useBoundedDrag } from "@/hooks/useBoundedDrag"
 
-const Card = ({ bgCanvasRef }: { bgCanvasRef: any }) => {
+type Props = {
+    /** Image URL to draw onto this card’s canvas */
+    src: string
+    /** The element that provides movement bounds (your background canvas or a board container) */
+    boundaryRef: React.RefObject<HTMLElement>
+    /** Force a redraw when this changes (e.g., clicking a “Load” button) */
+    reloadKey?: number
+    /** Starting position */
+    initial?: { x: number; y: number }
+    /** Final displayed scale (CSS pixels) relative to original image size */
+    finalScale?: number // default 0.125
+    /** Internal oversampling factor for crisper downscaling */
+    oversampleFactor?: number // default 2
+    /** Lock movement to an axis */
+    lockAxis?: "x" | "y"
+}
+
+export default function Card({
+    src,
+    boundaryRef,
+    reloadKey,
+    initial = { x: 0, y: 0 },
+    oversampleFactor = 2,
+    lockAxis,
+}: Props) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-    const [dragging, setDragging] = useState(false)
+    const finalScale = 0.15 // Default scale for final display
 
-    const [offset, setOffset] = useState({ x: 0, y: 0 })
-    const [startMousePos, setStartMousePos] = useState({ x: 0, y: 0 })
-    const [startOffset, setStartOffset] = useState({ x: 0, y: 0 })
+    // Drag within boundary
+    const { offset, dragging } = useBoundedDrag({
+        targetRef: canvasRef as unknown as React.RefObject<HTMLElement>,
+        boundaryRef,
+        initial,
+        lockAxis,
+    })
 
+    // Load and draw the image whenever src / reloadKey changes
     useEffect(() => {
-        const canvas = canvasRef.current
+        const cardCanvas = canvasRef.current
+        if (!cardCanvas) return
 
-        if (!canvas) {
+        const ctx = cardCanvas.getContext("2d")
+
+        if (!ctx) {
             return
         }
 
-        const handleMouseUp = () => {
-            setDragging(false)
-        }
+        const img = new Image()
+        img.src = src
 
-        const handleMouseDown = (e: MouseEvent) => {
-            if (!canvasRef.current) return
-            setDragging(true)
-            setStartMousePos({ x: e.clientX, y: e.clientY })
-            setStartOffset({ ...offset })
-        }
+        img.onload = () => {
+            const targetWidth = img.width * finalScale
+            const targetHeight = img.height * finalScale
 
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!dragging) return
-            const dx = e.clientX - startMousePos.x
-            const dy = e.clientY - startMousePos.y
+            const oversampledWidth = Math.max(
+                1,
+                Math.floor(targetWidth * oversampleFactor),
+            )
 
-            const canvasEl = canvasRef.current
-            const bgCanvasEl = bgCanvasRef.current
+            const oversampledHeight = Math.max(
+                1,
+                Math.floor(targetHeight * oversampleFactor),
+            )
 
-            if (!canvasEl || !bgCanvasEl) {
-                return
+            // Progressive downscale for quality
+            let currentCanvas = document.createElement("canvas")
+            currentCanvas.width = img.width
+            currentCanvas.height = img.height
+
+            let currentCtx = currentCanvas.getContext("2d")!
+            currentCtx.drawImage(img, 0, 0)
+
+            let cw = img.width
+            let ch = img.height
+
+            // Scale down in ~15% steps until near oversampled size
+            while (cw * 0.85 > oversampledWidth) {
+                const nextW = Math.max(1, Math.floor(cw * 0.85))
+                const nextH = Math.max(1, Math.floor(ch * 0.85))
+
+                const tmp = document.createElement("canvas")
+                tmp.width = nextW
+                tmp.height = nextH
+
+                const tctx = tmp.getContext("2d")!
+                tctx.imageSmoothingEnabled = true
+                tctx.imageSmoothingQuality = "high"
+                tctx.drawImage(currentCanvas, 0, 0, cw, ch, 0, 0, nextW, nextH)
+
+                currentCanvas = tmp
+                currentCtx = tctx
+                cw = nextW
+                ch = nextH
             }
 
-            // Get background canvas size
-            const bgWidth = bgCanvasEl.width
-            const bgHeight = bgCanvasEl.height
+            // Final draw to visible canvas at oversampled size
+            cardCanvas.width = oversampledWidth
+            cardCanvas.height = oversampledHeight
 
-            // Get current canvas (overlay) visible size
-            const visibleWidth = canvasEl.getBoundingClientRect().width
-            const visibleHeight = canvasEl.getBoundingClientRect().height
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = "high"
 
-            // Calculate proposed offset
-            let nextX = startOffset.x + dx
-            let nextY = startOffset.y + dy
+            ctx.clearRect(0, 0, cardCanvas.width, cardCanvas.height)
 
-            // Clamp so the overlay stays within bounds
-            nextX = Math.min(0, Math.max(nextX, bgWidth - visibleWidth))
-            nextY = Math.min(0, Math.max(nextY, bgHeight - visibleHeight))
+            ctx.drawImage(
+                currentCanvas,
+                0,
+                0,
+                oversampledWidth,
+                oversampledHeight,
+            )
 
-            setOffset({ x: nextX, y: nextY })
+            // Display at target size
+            cardCanvas.style.width = `${targetWidth}px`
+            cardCanvas.style.height = `${targetHeight}px`
         }
 
-        canvas.addEventListener("mousedown", handleMouseDown)
-        window.addEventListener("mousemove", handleMouseMove)
-        window.addEventListener("mouseup", handleMouseUp)
-
-        return () => {
-            canvas.removeEventListener("mousedown", handleMouseDown)
-            window.removeEventListener("mousemove", handleMouseMove)
-            window.removeEventListener("mouseup", handleMouseUp)
+        img.onerror = () => {
+            console.error("Failed to load image:", src)
         }
-    }, [dragging, offset, startMousePos, startOffset])
+    }, [src, reloadKey, finalScale, oversampleFactor])
 
     return (
         <canvas
@@ -86,5 +141,3 @@ const Card = ({ bgCanvasRef }: { bgCanvasRef: any }) => {
         />
     )
 }
-
-export default Card
