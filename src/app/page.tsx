@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 export default function CanvasImageLoader() {
-  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png")
+  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png");
 
   const [dragging, setDragging] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -47,7 +47,6 @@ export default function CanvasImageLoader() {
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [dragging, offset, startMousePos, startOffset]);
-
 
   useEffect(() => {
     const bgCanvas = bgCanvasRef.current;
@@ -92,14 +91,13 @@ export default function CanvasImageLoader() {
       drawCovered();
       window.addEventListener("resize", drawCovered);
     };
-
-  }, [])
+  }, []);
 
   const loadAndDrawImage = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const cardCanvas = canvasRef.current;
+    if (!cardCanvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = cardCanvas.getContext("2d");
     if (!ctx) return;
 
     const img = new Image();
@@ -139,8 +137,14 @@ export default function CanvasImageLoader() {
 
         tempCtx.drawImage(
           currentCanvas,
-          0, 0, currentWidth, currentHeight,
-          0, 0, nextWidth, nextHeight
+          0,
+          0,
+          currentWidth,
+          currentHeight,
+          0,
+          0,
+          nextWidth,
+          nextHeight
         );
 
         currentCanvas = tempCanvas;
@@ -150,17 +154,17 @@ export default function CanvasImageLoader() {
       }
 
       // Step 2: draw final image to visible canvas (at oversampled size)
-      canvas.width = oversampledWidth;
-      canvas.height = oversampledHeight;
+      cardCanvas.width = oversampledWidth;
+      cardCanvas.height = oversampledHeight;
 
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, cardCanvas.width, cardCanvas.height);
       ctx.drawImage(currentCanvas, 0, 0, oversampledWidth, oversampledHeight);
 
       // Step 3: set canvas style to display at target (¼) size
-      canvas.style.width = `${targetWidth}px`;
-      canvas.style.height = `${targetHeight}px`;
+      cardCanvas.style.width = `${targetWidth}px`;
+      cardCanvas.style.height = `${targetHeight}px`;
     };
 
     img.onerror = () => {
@@ -176,16 +180,16 @@ export default function CanvasImageLoader() {
           value={inputUrl}
           onChange={(e) => setInputUrl(e.target.value)}
           placeholder="/LOTR-EN01151.png"
-          style={{ width: "300px", marginRight: "10px"           }}
+          style={{ width: "300px", marginRight: "10px" }}
         />
         <button onClick={loadAndDrawImage}>Load</button>
       </div>
-    
+
       <canvas
         ref={bgCanvasRef}
         style={{
           position: "absolute",
-          zIndex: -1
+          zIndex: -1,
         }}
       />
 
@@ -198,8 +202,9 @@ export default function CanvasImageLoader() {
           zIndex: 0,
           imageRendering: "auto",
           transform: `translate(${offset.x}px, ${offset.y}px)`,
-          cursor: dragging ? "grabbing" : "grab"
-        }}      />
+          cursor: dragging ? "grabbing" : "grab",
+        }}
+      />
     </div>
   );
 }
