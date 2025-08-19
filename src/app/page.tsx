@@ -1,3 +1,4 @@
+// CanvasImageLoader.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -15,10 +16,7 @@ export default function CanvasImageLoader() {
     const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
     const stageRef = useRef<HTMLDivElement | null>(null)
 
-    // Input for adding a new card
     const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png")
-
-    // Cards state: seed with your original single card
     const [cards, setCards] = useState<CardSpec[]>([
         {
             id: 1,
@@ -28,11 +26,8 @@ export default function CanvasImageLoader() {
             oversampleFactor: 2,
         },
     ])
-
-    // Simple id generator
     const nextIdRef = useRef(2)
 
-    // Add card on submit (looks like original UI)
     const onAdd = (e: React.FormEvent) => {
         e.preventDefault()
         const id = nextIdRef.current++
@@ -42,14 +37,33 @@ export default function CanvasImageLoader() {
             {
                 id,
                 src: inputUrl,
-                initial: { x: 20 * n, y: 20 * n }, // stagger so they don't perfectly overlap
+                initial: { x: 20 * n, y: 20 * n },
                 finalScale: 0.125,
                 oversampleFactor: 2,
             },
         ])
     }
 
-    // Draw & resize the background to cover the stage
+    // Bring clicked card to front by moving it to end of the array
+    const onStagePointerDownCapture = (
+        e: React.PointerEvent<HTMLDivElement>,
+    ) => {
+        const el = (e.target as HTMLElement).closest(
+            "[data-card-id]",
+        ) as HTMLElement | null
+        if (!el) return
+        const id = Number(el.getAttribute("data-card-id"))
+        setCards((prev) => {
+            const idx = prev.findIndex((c) => c.id === id)
+            if (idx === -1) return prev
+            const next = prev.slice()
+            const [picked] = next.splice(idx, 1)
+            next.push(picked)
+            return next
+        })
+    }
+
+    // Draw & resize background
     useEffect(() => {
         const bgCanvas = bgCanvasRef.current
         const ctx = bgCanvas?.getContext("2d")
@@ -93,7 +107,7 @@ export default function CanvasImageLoader() {
 
     return (
         <div>
-            {/* Looks like your original input row */}
+            {/* original look */}
             <form onSubmit={onAdd} style={{ marginBottom: 10 }}>
                 <input
                     type="text"
@@ -105,9 +119,9 @@ export default function CanvasImageLoader() {
                 <button type="submit">Load</button>
             </form>
 
-            {/* Stage: a positioned container for the canvases */}
             <div
                 ref={stageRef}
+                onPointerDownCapture={onStagePointerDownCapture} // <- one handler for all cards
                 style={{
                     position: "relative",
                     width: "100vw",
@@ -117,17 +131,13 @@ export default function CanvasImageLoader() {
             >
                 <canvas
                     ref={bgCanvasRef}
-                    style={{
-                        position: "absolute",
-                        inset: 0,
-                        zIndex: -1,
-                    }}
+                    style={{ position: "absolute", inset: 0, zIndex: -1 }}
                 />
 
-                {/* Render all cards */}
                 {cards.map((c) => (
                     <Card
                         key={c.id}
+                        id={c.id}
                         src={c.src}
                         boundaryRef={
                             bgCanvasRef as unknown as React.RefObject<HTMLElement>
