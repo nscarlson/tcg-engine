@@ -1,3 +1,6 @@
+// Drag and boundary logic is handled exclusively by useBoundedDrag.
+// This component only uses the hook and does not implement its own drag/boundary logic.
+
 // components/card.tsx
 "use client"
 
@@ -46,16 +49,21 @@ export default function Card({
         img.src = src
 
         const draw = () => {
-            const iw = img.width,
-                ih = img.height
-            if (!iw || !ih) return
+            const iw = img.width
+            const ih = img.height
+
+            if (!iw || !ih) {
+                return
+            }
 
             const targetWidth = iw * finalScale
             const targetHeight = ih * finalScale
+
             const oversampledWidth = Math.max(
                 1,
                 Math.floor(targetWidth * oversampleFactor),
             )
+
             const oversampledHeight = Math.max(
                 1,
                 Math.floor(targetHeight * oversampleFactor),
@@ -64,11 +72,13 @@ export default function Card({
             let currentCanvas = document.createElement("canvas")
             currentCanvas.width = iw
             currentCanvas.height = ih
+
             let currentCtx = currentCanvas.getContext("2d")!
             currentCtx.drawImage(img, 0, 0)
 
-            let cw = iw,
-                ch = ih
+            let cw = iw
+            let ch = ih
+
             while (cw * 0.85 > oversampledWidth) {
                 const nextW = Math.max(1, Math.floor(cw * 0.85))
                 const nextH = Math.max(1, Math.floor(ch * 0.85))
@@ -89,6 +99,7 @@ export default function Card({
             cardCanvas.height = oversampledHeight
             ctx.imageSmoothingEnabled = true
             ctx.imageSmoothingQuality = "high"
+
             ctx.clearRect(0, 0, cardCanvas.width, cardCanvas.height)
             ctx.drawImage(
                 currentCanvas,
