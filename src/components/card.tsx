@@ -1,94 +1,140 @@
+// Drag and boundary logic is handled exclusively by useBoundedDrag.
+// This component only uses the hook and does not implement its own drag/boundary logic.
+
+// components/card.tsx
 "use client"
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react"
+import { useBoundedDrag } from "../hooks/useBoundedDrag"
 
-const Card = ({
-    bgCanvasRef,
-}: {
-    bgCanvasRef: any
-}) => {
+type Props = {
+    id: number
+    src: string
+    boundaryRef: React.RefObject<HTMLElement>
+    initial?: { x: number; y: number }
+    finalScale?: number
+    oversampleFactor?: number
+    lockAxis?: "x" | "y"
+}
+
+export default function Card({
+    id,
+    src,
+    boundaryRef,
+    initial = { x: 0, y: 0 },
+    finalScale = 1,
+    oversampleFactor = 2,
+    lockAxis,
+}: Props) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    const { offset, dragging } = useBoundedDrag({
+        targetRef: canvasRef as unknown as React.RefObject<HTMLElement>,
+        boundaryRef,
+        initial,
+        lockAxis,
+    })
 
-    const [dragging, setDragging] = useState(false);
-
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [startMousePos, setStartMousePos] = useState({ x: 0, y: 0 });
-    const [startOffset, setStartOffset] = useState({ x: 0, y: 0 });  
+    const [cssSize, setCssSize] = useState<{ w: number; h: number }>({
+        w: 0,
+        h: 0,
+    })
 
     useEffect(() => {
+        const cardCanvas = canvasRef.current
+        if (!cardCanvas) return
+        const ctx = cardCanvas.getContext("2d")
+        if (!ctx) return
 
-        const canvas = canvasRef.current;
+        const img = new Image()
+        img.src = src
 
-        if (!canvas) {
-          return
-        };
-    
-        const handleMouseUp = () => {
-            setDragging(false);
-        };
+        const draw = () => {
+            const iw = img.width
+            const ih = img.height
 
-        const handleMouseDown = (e: MouseEvent) => {
-            if (!canvasRef.current) return;
-            setDragging(true);
-            setStartMousePos({ x: e.clientX, y: e.clientY });
-            setStartOffset({ ...offset });
-          };
-
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!dragging) return;
-            const dx = e.clientX - startMousePos.x;
-            const dy = e.clientY - startMousePos.y;
-
-            const canvasEl = canvasRef.current;
-            const bgCanvasEl = bgCanvasRef.current;
-            
-            if (!canvasEl || !bgCanvasEl) {
+            if (!iw || !ih) {
                 return
-            };
-            
-            // Get background canvas size
-            const bgWidth = bgCanvasEl.width;
-            const bgHeight = bgCanvasEl.height;
-            
-            // Get current canvas (overlay) visible size
-            const visibleWidth = canvasEl.getBoundingClientRect().width;
-            const visibleHeight = canvasEl.getBoundingClientRect().height;
-            
-            // Calculate proposed offset
-            let nextX = startOffset.x + dx;
-            let nextY = startOffset.y + dy;
-            
-            // Clamp so the overlay stays within bounds
-            nextX = Math.min(0, Math.max(nextX, bgWidth - visibleWidth));
-            nextY = Math.min(0, Math.max(nextY, bgHeight - visibleHeight));
-            
-            setOffset({ x: nextX, y: nextY });
-          };
+            }
 
-          canvas.addEventListener("mousedown", handleMouseDown);
-          window.addEventListener("mousemove", handleMouseMove);
-          window.addEventListener("mouseup", handleMouseUp);
-      
-          return () => {
-            canvas.removeEventListener("mousedown", handleMouseDown);
-            window.removeEventListener("mousemove", handleMouseMove);
-            window.removeEventListener("mouseup", handleMouseUp);
-          };
-      
-    }, [dragging, offset, startMousePos, startOffset])
+            const targetWidth = iw * finalScale
+            const targetHeight = ih * finalScale
+
+            const oversampledWidth = Math.max(
+                1,
+                Math.floor(targetWidth * oversampleFactor),
+            )
+
+            const oversampledHeight = Math.max(
+                1,
+                Math.floor(targetHeight * oversampleFactor),
+            )
+
+            let currentCanvas = document.createElement("canvas")
+            currentCanvas.width = iw
+            currentCanvas.height = ih
+
+            let currentCtx = currentCanvas.getContext("2d")!
+            currentCtx.drawImage(img, 0, 0)
+
+            let cw = iw
+            let ch = ih
+
+            while (cw * 0.85 > oversampledWidth) {
+                const nextW = Math.max(1, Math.floor(cw * 0.85))
+                const nextH = Math.max(1, Math.floor(ch * 0.85))
+                const tmp = document.createElement("canvas")
+                tmp.width = nextW
+                tmp.height = nextH
+                const tctx = tmp.getContext("2d")!
+                tctx.imageSmoothingEnabled = true
+                tctx.imageSmoothingQuality = "high"
+                tctx.drawImage(currentCanvas, 0, 0, cw, ch, 0, 0, nextW, nextH)
+                currentCanvas = tmp
+                currentCtx = tctx
+                cw = nextW
+                ch = nextH
+            }
+
+            cardCanvas.width = oversampledWidth
+            cardCanvas.height = oversampledHeight
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = "high"
+
+            ctx.clearRect(0, 0, cardCanvas.width, cardCanvas.height)
+            ctx.drawImage(
+                currentCanvas,
+                0,
+                0,
+                oversampledWidth,
+                oversampledHeight,
+            )
+
+            setCssSize({ w: targetWidth, h: targetHeight })
+        }
+
+        if (img.complete && img.naturalWidth) draw()
+        else {
+            img.onload = draw
+            img.onerror = () => console.error("Failed to load image:", src)
+        }
+    }, [src, finalScale, oversampleFactor])
 
     return (
         <canvas
-        ref={canvasRef}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          zIndex: 0,
-          imageRendering: "auto",
-          transform: `translate(${offset.x}px, ${offset.y}px)`,
-          cursor: dragging ? "grabbing" : "grab"
-        }}      />    )
+            ref={canvasRef}
+            data-card-id={id} // <- parent uses this to identify the clicked card
+            style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                // zIndex intentionally omitted: rely on DOM order for stacking
+                imageRendering: "auto",
+                width: cssSize.w ? `${cssSize.w}px` : undefined,
+                height: cssSize.h ? `${cssSize.h}px` : undefined,
+                transform: `translate(${offset.x}px, ${offset.y}px)`,
+                cursor: dragging ? "grabbing" : "grab",
+                willChange: "transform",
+            }}
+        />
+    )
 }
-
-export default Card

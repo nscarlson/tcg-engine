@@ -1,205 +1,275 @@
-"use client";
+// CanvasImageLoader.tsx
+"use client"
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react"
+import Card from "../components/card"
+
+const cardSets = [
+    {
+        name: "Fellowship of the Ring",
+        count: 365,
+    },
+    {
+        name: "Mines of Moria",
+        count: 124,
+    },
+    {
+        name: "Realms of the Elf Lords",
+        count: 124,
+    },
+    {
+        name: "Two Towers",
+        count: 365,
+    },
+    {
+        name: "Battle of Helm's Deep",
+        count: 124,
+    },
+    {
+        name: "Ents of Fangorn",
+        count: 124,
+    },
+    {
+        name: "Return of the King",
+        count: 365,
+    },
+    {
+        name: "Siege of Gondor",
+        count: 365,
+    },
+    {
+        name: "Reflections",
+        count: 54,
+    },
+    {
+        name: "Mount Doom",
+        count: 124, // This set is not available in the original code, but added for completeness
+    },
+]
 
 export default function CanvasImageLoader() {
-  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png")
+    const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
+    const stageRef = useRef<HTMLDivElement | null>(null)
 
-  const [dragging, setDragging] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [startMousePos, setStartMousePos] = useState({ x: 0, y: 0 });
-  const [startOffset, setStartOffset] = useState({ x: 0, y: 0 });
+    const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png")
+    const [cards, setCards] = useState<string[]>([])
 
-  useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      if (!canvasRef.current) return;
-      setDragging(true);
-      setStartMousePos({ x: e.clientX, y: e.clientY });
-      setStartOffset({ ...offset });
-    };
+    useEffect(() => {
+        if (cards.length === 0) {
+            setCards(
+                Array.from({ length: 60 }, () => {
+                    const setNumber = Math.floor(
+                        Math.random() * cardSets.length,
+                    )
+                    const cardNumber =
+                        Math.floor(Math.random() * cardSets[setNumber].count) +
+                        1
+                    const setStr = setNumber.toString().padStart(2, "0")
+                    const cardStr = cardNumber.toString().padStart(3, "0")
+                    return `/LOTR-EN${setStr}${cardStr}.png`
+                }),
+            )
+        }
+    }, [cards.length])
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging) return;
-      const dx = e.clientX - startMousePos.x;
-      const dy = e.clientY - startMousePos.y;
-      setOffset({
-        x: startOffset.x + dx,
-        y: startOffset.y + dy,
-      });
-    };
+    // Utility to calculate grid positions
+    function getGridPositions(
+        cardSrcs: string[],
+        cardWidth: number,
+        cardHeight: number,
+        cardsPerRow = 8,
+    ) {
+        return cardSrcs.map((src, idx) => {
+            const row = Math.floor(idx / cardsPerRow)
+            const col = idx % cardsPerRow
+            return {
+                src,
+                initial: { x: col * cardWidth, y: row * cardHeight },
+            }
+        })
+    }
 
-    const handleMouseUp = () => {
-      setDragging(false);
-    };
+    function getStackedGridPositions(
+        cardSrcs: string[],
+        cardWidth: number,
+        cardHeight: number,
+        cardsPerRow = 10,
+        stackOffset = 20,
+    ) {
+        // Group cards by src
+        const groups: Record<string, number[]> = {}
+        cardSrcs.forEach((src, idx) => {
+            if (!groups[src]) groups[src] = []
+            groups[src].push(idx)
+        })
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+        // Prepare stacks for grid cells
+        const stacks = Object.entries(groups).map(([src, indices]) => ({
+            src,
+            count: indices.length,
+        }))
 
-    canvas.addEventListener("mousedown", handleMouseDown);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+        // Calculate row heights based on tallest stack in each row
+        const rowHeights: number[] = []
+        for (let i = 0; i < Math.ceil(stacks.length / cardsPerRow); i++) {
+            const rowStacks = stacks.slice(
+                i * cardsPerRow,
+                (i + 1) * cardsPerRow,
+            )
+            const maxStack = Math.max(...rowStacks.map((s) => s.count), 1)
+            rowHeights[i] = cardHeight + (maxStack - 1) * stackOffset
+        }
 
-    return () => {
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [dragging, offset, startMousePos, startOffset]);
+        // Place stacks in grid, tracking y offset for each row
+        const positions: { src: string; initial: { x: number; y: number } }[] =
+            []
+        let y = 0
+        let stackIdx = 0
+        for (let row = 0; row < rowHeights.length; row++) {
+            for (let col = 0; col < cardsPerRow; col++) {
+                if (stackIdx >= stacks.length) break
+                const stack = stacks[stackIdx]
+                for (let s = 0; s < stack.count; s++) {
+                    positions.push({
+                        src: stack.src,
+                        initial: {
+                            x: col * cardWidth,
+                            y: y + s * stackOffset,
+                        },
+                    })
+                }
+                stackIdx++
+            }
+            y += rowHeights[row]
+        }
+        return positions
+    }
 
+    // Example usage: laying out cards in a grid
+    function layoutCardsInGrid(cardSrcs: string[]) {
+        setCards(cardSrcs)
+    }
 
-  useEffect(() => {
-    const bgCanvas = bgCanvasRef.current;
-    const ctx = bgCanvas?.getContext("2d");
-    if (!bgCanvas || !ctx) return;
+    // Add new card
+    const onAdd = (e: React.FormEvent) => {
+        e.preventDefault()
+        setCards((prev) => [...prev, inputUrl])
+    }
 
-    const bgImg = new Image();
-    bgImg.src = "/background.jpg"; // Your image in the public folder
+    // Bring clicked card to front by moving it to end of the array
+    const onStagePointerDownCapture = (
+        e: React.PointerEvent<HTMLDivElement>,
+    ) => {
+        const el = (e.target as HTMLElement).closest(
+            "[data-card-id]",
+        ) as HTMLElement | null
+        if (!el) return
+        const src = el.getAttribute("src")
+        setCards((prev) => {
+            const idx = prev.findIndex((s) => s === src)
+            if (idx === -1) return prev
+            const next = prev.slice()
+            const [picked] = next.splice(idx, 1)
+            next.push(picked)
+            return next
+        })
+    }
 
-    const drawCovered = () => {
-      const cw = window.innerWidth;
-      const ch = window.innerHeight;
-      bgCanvas.width = cw;
-      bgCanvas.height = ch;
+    // Draw & resize background
+    useEffect(() => {
+        const bgCanvas = bgCanvasRef.current
+        const ctx = bgCanvas?.getContext("2d")
+        if (!bgCanvas || !ctx) return
 
-      ctx.clearRect(0, 0, cw, ch);
+        const bgImg = new Image()
+        bgImg.src = "/background.jpg"
 
-      const iw = bgImg.width;
-      const ih = bgImg.height;
+        const drawCovered = () => {
+            const cw = stageRef.current?.clientWidth ?? window.innerWidth
+            const ch = stageRef.current?.clientHeight ?? window.innerHeight
+            bgCanvas.width = cw
+            bgCanvas.height = ch
 
-      const scale = Math.max(cw / iw, ch / ih);
+            ctx.clearRect(0, 0, cw, ch)
 
-      const drawWidth = iw * scale;
-      const drawHeight = ih * scale;
+            const iw = bgImg.width
+            const ih = bgImg.height
+            if (!iw || !ih) return
 
-      const offsetX = (cw - drawWidth) / 2;
-      const offsetY = (ch - drawHeight) / 2;
+            const scale = Math.max(cw / iw, ch / ih)
+            const drawWidth = iw * scale
+            const drawHeight = ih * scale
+            const offsetX = (cw - drawWidth) / 2
+            const offsetY = (ch - drawHeight) / 2
 
-      ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
-    };
+            ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight)
+        }
 
-    // const resizeCanvas = () => {
-    //   bgCanvas.width = window.innerWidth;
-    //   bgCanvas.height = window.innerHeight;
+        const onLoad = () => {
+            drawCovered()
+            window.addEventListener("resize", drawCovered)
+        }
 
-    //   // Optionally scale image to fit the canvas, or just draw it at top-left
-    //   ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-    //   ctx.drawImage(img, 0, 0); // Or add scaling logic if desired
-    // };
+        bgImg.addEventListener("load", onLoad)
+        return () => {
+            bgImg.removeEventListener("load", onLoad)
+            window.removeEventListener("resize", drawCovered)
+        }
+    }, [])
 
-    bgImg.onload = () => {
-      drawCovered();
-      window.addEventListener("resize", drawCovered);
-    };
+    // Card layout
+    const cardWidth = 120
+    const cardHeight = 180
+    const grid = getStackedGridPositions(cards, cardWidth, cardHeight)
 
-  }, [])
+    return (
+        <div>
+            {/* original look */}
+            <form onSubmit={onAdd} style={{ marginBottom: 10 }}>
+                <input
+                    type="text"
+                    value={inputUrl}
+                    onChange={(e) => setInputUrl(e.target.value)}
+                    placeholder="/LOTR-EN01151.png"
+                    style={{ width: 300, marginRight: 10 }}
+                />
+                <button type="submit">Load</button>
+            </form>
 
-  const loadAndDrawImage = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+            <div
+                ref={stageRef}
+                onPointerDownCapture={onStagePointerDownCapture} // <- one handler for all cards
+                style={{
+                    position: "relative",
+                    width: "100vw",
+                    height: "100vh",
+                    overflow: "hidden",
+                }}
+            >
+                <canvas
+                    ref={bgCanvasRef}
+                    style={{ position: "absolute", inset: 0, zIndex: -1 }}
+                />
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+                {grid.map((g, idx) => (
+                    <Card
+                        key={idx}
+                        id={idx}
+                        src={g.src}
+                        boundaryRef={
+                            bgCanvasRef as unknown as React.RefObject<HTMLElement>
+                        }
+                        initial={g.initial}
+                        finalScale={0.125}
+                        oversampleFactor={2}
+                    />
+                ))}
+            </div>
 
-    const img = new Image();
-    img.src = inputUrl;
-
-    img.onload = () => {
-      const finalScale = 0.125; // <- Desired final visible scale
-      const oversampleFactor = 2; // <- Draw internally at 2x res
-
-      const targetWidth = img.width * finalScale;
-      const targetHeight = img.height * finalScale;
-      const oversampledWidth = targetWidth * oversampleFactor;
-      const oversampledHeight = targetHeight * oversampleFactor;
-
-      // Step 1: progressively scale to oversampled size
-      let currentCanvas = document.createElement("canvas");
-      currentCanvas.width = img.width;
-      currentCanvas.height = img.height;
-
-      let currentCtx = currentCanvas.getContext("2d")!;
-      currentCtx.drawImage(img, 0, 0);
-
-      let currentWidth = img.width;
-      let currentHeight = img.height;
-
-      while (currentWidth * 0.85 > oversampledWidth) {
-        const nextWidth = Math.floor(currentWidth * 0.85);
-        const nextHeight = Math.floor(currentHeight * 0.85);
-
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = nextWidth;
-        tempCanvas.height = nextHeight;
-
-        const tempCtx = tempCanvas.getContext("2d")!;
-        tempCtx.imageSmoothingEnabled = true;
-        tempCtx.imageSmoothingQuality = "high";
-
-        tempCtx.drawImage(
-          currentCanvas,
-          0, 0, currentWidth, currentHeight,
-          0, 0, nextWidth, nextHeight
-        );
-
-        currentCanvas = tempCanvas;
-        currentCtx = tempCtx;
-        currentWidth = nextWidth;
-        currentHeight = nextHeight;
-      }
-
-      // Step 2: draw final image to visible canvas (at oversampled size)
-      canvas.width = oversampledWidth;
-      canvas.height = oversampledHeight;
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(currentCanvas, 0, 0, oversampledWidth, oversampledHeight);
-
-      // Step 3: set canvas style to display at target (¼) size
-      canvas.style.width = `${targetWidth}px`;
-      canvas.style.height = `${targetHeight}px`;
-    };
-
-    img.onerror = () => {
-      console.error("Failed to load image:", inputUrl);
-    };
-  };
-
-  return (
-    <div>
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="text"
-          value={inputUrl}
-          onChange={(e) => setInputUrl(e.target.value)}
-          placeholder="/LOTR-EN01151.png"
-          style={{ width: "300px", marginRight: "10px"           }}
-        />
-        <button onClick={loadAndDrawImage}>Load</button>
-      </div>
-    
-      <canvas
-        ref={bgCanvasRef}
-        style={{
-          position: "absolute",
-          zIndex: -1
-        }}
-      />
-
-      <canvas
-        ref={canvasRef}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          zIndex: 0,
-          imageRendering: "auto",
-          transform: `translate(${offset.x}px, ${offset.y}px)`,
-          cursor: dragging ? "grabbing" : "grab"
-        }}      />
-    </div>
-  );
+            {/* Example button to trigger grid layout */}
+            <button onClick={() => layoutCardsInGrid(cards)}>
+                Import deck
+            </button>
+        </div>
+    )
 }
