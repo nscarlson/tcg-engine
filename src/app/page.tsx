@@ -107,7 +107,7 @@ export default function CanvasImageLoader() {
     }
 
     function getStackedGridPositions(
-        cardSrcs: string[],
+        cardIds: string[],
         cardWidth: number,
         cardHeight: number,
         cardsPerRow = 10,
@@ -116,14 +116,14 @@ export default function CanvasImageLoader() {
         // Group cards by src
         const groups: Record<string, number[]> = {}
 
-        cardSrcs.forEach((cardId, idx) => {
+        cardIds.forEach((cardId, idx) => {
             if (!groups[cardId]) groups[cardId] = []
             groups[cardId].push(idx)
         })
 
         // Prepare stacks for grid cells
-        const stacks = Object.entries(groups).map(([src, indices]) => ({
-            src,
+        const stacks = Object.entries(groups).map(([cardId, indices]) => ({
+            src: cardId,
             count: indices.length,
         }))
 
