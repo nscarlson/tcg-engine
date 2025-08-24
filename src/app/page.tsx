@@ -91,16 +91,16 @@ export default function CanvasImageLoader() {
 
     // Utility to calculate grid positions
     function getGridPositions(
-        cardSrcs: string[],
+        cardIds: string[],
         cardWidth: number,
         cardHeight: number,
         cardsPerRow = 8,
     ) {
-        return cardSrcs.map((src, idx) => {
+        return cardIds.map((cardId, idx) => {
             const row = Math.floor(idx / cardsPerRow)
             const col = idx % cardsPerRow
             return {
-                src,
+                src: cardId,
                 initial: { x: col * cardWidth, y: row * cardHeight },
             }
         })
