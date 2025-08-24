@@ -100,7 +100,7 @@ export default function CanvasImageLoader() {
             const row = Math.floor(idx / cardsPerRow)
             const col = idx % cardsPerRow
             return {
-                src: cardId,
+                cardId,
                 initial: { x: col * cardWidth, y: row * cardHeight },
             }
         })
@@ -123,7 +123,7 @@ export default function CanvasImageLoader() {
 
         // Prepare stacks for grid cells
         const stacks = Object.entries(groups).map(([cardId, indices]) => ({
-            src: cardId,
+            cardId,
             count: indices.length,
         }))
 
@@ -140,8 +140,10 @@ export default function CanvasImageLoader() {
         }
 
         // Place stacks in grid, tracking y offset for each row
-        const positions: { src: string; initial: { x: number; y: number } }[] =
-            []
+        const positions: {
+            cardId: string
+            initial: { x: number; y: number }
+        }[] = []
         let y = 0
         let stackIdx = 0
         for (let row = 0; row < rowHeights.length; row++) {
@@ -151,7 +153,7 @@ export default function CanvasImageLoader() {
 
                 for (let s = 0; s < stack.count; s++) {
                     positions.push({
-                        src: stack.src,
+                        cardId: stack.cardId,
                         initial: {
                             x: col * cardWidth,
                             y: y + s * stackOffset,
@@ -186,10 +188,10 @@ export default function CanvasImageLoader() {
             return
         }
 
-        const src = el.getAttribute("src")
+        const cardId = el.getAttribute("src")
 
         setCards((prev) => {
-            const idx = prev.findIndex((s) => s === src)
+            const idx = prev.findIndex((s) => s === cardId)
 
             if (idx === -1) {
                 return prev
@@ -284,7 +286,7 @@ export default function CanvasImageLoader() {
                     <Card
                         key={idx}
                         id={idx}
-                        src={g.src}
+                        cardId={g.cardId}
                         boundaryRef={
                             bgCanvasRef as unknown as React.RefObject<HTMLElement>
                         }

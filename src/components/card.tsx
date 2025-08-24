@@ -9,7 +9,7 @@ import { useBoundedDrag } from "../hooks/useBoundedDrag"
 
 type Props = {
     index: number
-    src: string
+    cardId: string
     boundaryRef: React.RefObject<HTMLElement>
     initial?: { x: number; y: number }
     finalScale?: number
@@ -19,7 +19,7 @@ type Props = {
 
 export default function Card({
     index,
-    src,
+    cardId,
     boundaryRef,
     initial = { x: 0, y: 0 },
     finalScale = 1,
@@ -55,7 +55,7 @@ export default function Card({
         const img = new Image()
 
         img.onload = () => {
-            console.log("Image loaded:", src)
+            console.log("Image loaded:", cardId)
             const iw = img.width
             const ih = img.height
 
@@ -124,17 +124,17 @@ export default function Card({
         }
 
         img.onerror = () => {
-            console.error("Failed to load image:", src)
+            console.error("Failed to load image:", cardId)
             setIsReady(false)
         }
 
-        img.src = src // <-- Set src after handlers
+        img.src = cardId // <-- Set src after handlers
 
         return () => {
             img.onload = null
             img.onerror = null
         }
-    }, [src, finalScale, oversampleFactor])
+    }, [cardId, finalScale, oversampleFactor])
 
     return (
         <canvas
