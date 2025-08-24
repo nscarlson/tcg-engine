@@ -38,17 +38,24 @@ export default function Card({
         w: 0,
         h: 0,
     })
+    const [isReady, setIsReady] = useState(false) // <-- updated name
 
     useEffect(() => {
         const cardCanvas = canvasRef.current
-        if (!cardCanvas) return
+        if (!cardCanvas) {
+            return
+        }
+
         const ctx = cardCanvas.getContext("2d")
-        if (!ctx) return
+
+        if (!ctx) {
+            return
+        }
 
         const img = new Image()
-        img.src = src
 
-        const draw = () => {
+        img.onload = () => {
+            console.log("Image loaded:", src)
             const iw = img.width
             const ih = img.height
 
@@ -56,6 +63,7 @@ export default function Card({
                 return
             }
 
+            // calculate sampling sizes for scaling down
             const targetWidth = iw * finalScale
             const targetHeight = ih * finalScale
 
@@ -89,8 +97,10 @@ export default function Card({
                 tctx.imageSmoothingEnabled = true
                 tctx.imageSmoothingQuality = "high"
                 tctx.drawImage(currentCanvas, 0, 0, cw, ch, 0, 0, nextW, nextH)
+
                 currentCanvas = tmp
                 currentCtx = tctx
+
                 cw = nextW
                 ch = nextH
             }
@@ -99,7 +109,6 @@ export default function Card({
             cardCanvas.height = oversampledHeight
             ctx.imageSmoothingEnabled = true
             ctx.imageSmoothingQuality = "high"
-
             ctx.clearRect(0, 0, cardCanvas.width, cardCanvas.height)
             ctx.drawImage(
                 currentCanvas,
@@ -110,12 +119,20 @@ export default function Card({
             )
 
             setCssSize({ w: targetWidth, h: targetHeight })
+
+            setIsReady(true)
         }
 
-        if (img.complete && img.naturalWidth) draw()
-        else {
-            img.onload = draw
-            img.onerror = () => console.error("Failed to load image:", src)
+        img.onerror = () => {
+            console.error("Failed to load image:", src)
+            setIsReady(false)
+        }
+
+        img.src = src // <-- Set src after handlers
+
+        return () => {
+            img.onload = null
+            img.onerror = null
         }
     }, [src, finalScale, oversampleFactor])
 
@@ -127,13 +144,14 @@ export default function Card({
                 position: "absolute",
                 top: 0,
                 left: 0,
-                // zIndex intentionally omitted: rely on DOM order for stacking
+                zIndex: 0,
                 imageRendering: "auto",
                 width: cssSize.w ? `${cssSize.w}px` : undefined,
                 height: cssSize.h ? `${cssSize.h}px` : undefined,
                 transform: `translate(${offset.x}px, ${offset.y}px)`,
                 cursor: dragging ? "grabbing" : "grab",
                 willChange: "transform",
+                visibility: isReady ? "visible" : "hidden", // <-- keep canvas in DOM but hide it
             }}
         />
     )

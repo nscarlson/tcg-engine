@@ -1,4 +1,3 @@
-// CanvasImageLoader.tsx
 "use client"
 
 import { useEffect, useRef, useState } from "react"
@@ -11,11 +10,11 @@ const cardSets = [
     },
     {
         name: "Mines of Moria",
-        count: 124,
+        count: 122,
     },
     {
         name: "Realms of the Elf Lords",
-        count: 124,
+        count: 122,
     },
     {
         name: "Two Towers",
@@ -35,15 +34,15 @@ const cardSets = [
     },
     {
         name: "Siege of Gondor",
-        count: 365,
+        count: 122,
     },
     {
         name: "Reflections",
-        count: 54,
+        count: 52,
     },
     {
         name: "Mount Doom",
-        count: 124, // This set is not available in the original code, but added for completeness
+        count: 122, // This set is not available in the original code, but added for completeness
     },
 ]
 
@@ -64,7 +63,7 @@ export default function CanvasImageLoader() {
                     const cardNumber =
                         Math.floor(Math.random() * cardSets[setNumber].count) +
                         1
-                    const setStr = setNumber.toString().padStart(2, "0")
+                    const setStr = (setNumber + 1).toString().padStart(2, "0")
                     const cardStr = cardNumber.toString().padStart(3, "0")
                     return `/LOTR-EN${setStr}${cardStr}.png`
                 }),
@@ -160,16 +159,29 @@ export default function CanvasImageLoader() {
     const onStagePointerDownCapture = (
         e: React.PointerEvent<HTMLDivElement>,
     ) => {
+        console.log("onStagePointerDownCapture")
+
         const el = (e.target as HTMLElement).closest(
             "[data-card-id]",
         ) as HTMLElement | null
-        if (!el) return
+
+        if (!el) {
+            console.log("no card found")
+            return
+        }
+
         const src = el.getAttribute("src")
+
         setCards((prev) => {
             const idx = prev.findIndex((s) => s === src)
-            if (idx === -1) return prev
+
+            if (idx === -1) {
+                return prev
+            }
+
             const next = prev.slice()
             const [picked] = next.splice(idx, 1)
+
             next.push(picked)
             return next
         })
@@ -179,7 +191,9 @@ export default function CanvasImageLoader() {
     useEffect(() => {
         const bgCanvas = bgCanvasRef.current
         const ctx = bgCanvas?.getContext("2d")
-        if (!bgCanvas || !ctx) return
+        if (!bgCanvas || !ctx) {
+            return
+        }
 
         const bgImg = new Image()
         bgImg.src = "/background.jpg"
