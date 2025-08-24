@@ -116,9 +116,9 @@ export default function CanvasImageLoader() {
         // Group cards by src
         const groups: Record<string, number[]> = {}
 
-        cardSrcs.forEach((src, idx) => {
-            if (!groups[src]) groups[src] = []
-            groups[src].push(idx)
+        cardSrcs.forEach((cardId, idx) => {
+            if (!groups[cardId]) groups[cardId] = []
+            groups[cardId].push(idx)
         })
 
         // Prepare stacks for grid cells
