@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react"
 import { useBoundedDrag } from "../hooks/useBoundedDrag"
 
 type Props = {
-    id: number
+    index: number
     src: string
     boundaryRef: React.RefObject<HTMLElement>
     initial?: { x: number; y: number }
@@ -18,7 +18,7 @@ type Props = {
 }
 
 export default function Card({
-    id,
+    index,
     src,
     boundaryRef,
     initial = { x: 0, y: 0 },
@@ -139,7 +139,7 @@ export default function Card({
     return (
         <canvas
             ref={canvasRef}
-            data-card-id={id} // <- parent uses this to identify the clicked card
+            data-card-index={index} // <- parent uses this to identify the clicked card
             style={{
                 position: "absolute",
                 top: 0,

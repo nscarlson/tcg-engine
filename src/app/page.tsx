@@ -46,11 +46,29 @@ const cardSets = [
     },
 ]
 
+interface GridProps {
+    cardIds: string[]
+}
+// IMPORTANT: Mechanism to differentiate multiple instances of the same card within a list, grid, stack, etc
+// This is accomplished by a numerical index, which *should* be identical to the data-card-index attribute on the card's canvas
+
+const Grid = ({ cardIds }: GridProps) => {
+    // object keyed by card id -> array of card indices
+
+    const groups: Record<string, number[]> = {}
+
+    cardIds.forEach((cardId, idx) => {
+        if (!groups[cardId]) groups[cardId] = []
+        groups[cardId].push(idx)
+    })
+
+    return
+}
+
 export default function CanvasImageLoader() {
     const bgCanvasRef = useRef<HTMLCanvasElement | null>(null)
     const stageRef = useRef<HTMLDivElement | null>(null)
 
-    const [inputUrl, setInputUrl] = useState("/LOTR-EN01151.png")
     const [cards, setCards] = useState<string[]>([])
 
     useEffect(() => {
@@ -97,6 +115,7 @@ export default function CanvasImageLoader() {
     ) {
         // Group cards by src
         const groups: Record<string, number[]> = {}
+
         cardSrcs.forEach((src, idx) => {
             if (!groups[src]) groups[src] = []
             groups[src].push(idx)
@@ -110,6 +129,7 @@ export default function CanvasImageLoader() {
 
         // Calculate row heights based on tallest stack in each row
         const rowHeights: number[] = []
+
         for (let i = 0; i < Math.ceil(stacks.length / cardsPerRow); i++) {
             const rowStacks = stacks.slice(
                 i * cardsPerRow,
@@ -128,6 +148,7 @@ export default function CanvasImageLoader() {
             for (let col = 0; col < cardsPerRow; col++) {
                 if (stackIdx >= stacks.length) break
                 const stack = stacks[stackIdx]
+
                 for (let s = 0; s < stack.count; s++) {
                     positions.push({
                         src: stack.src,
@@ -144,16 +165,11 @@ export default function CanvasImageLoader() {
         return positions
     }
 
-    // Example usage: laying out cards in a grid
-    function layoutCardsInGrid(cardSrcs: string[]) {
-        setCards(cardSrcs)
-    }
-
     // Add new card
-    const onAdd = (e: React.FormEvent) => {
-        e.preventDefault()
-        setCards((prev) => [...prev, inputUrl])
-    }
+    // const onAdd = (e: React.FormEvent) => {
+    //     e.preventDefault()
+    //     setCards((prev) => [...prev, inputUrl])
+    // }
 
     // Bring clicked card to front by moving it to end of the array
     const onStagePointerDownCapture = (
@@ -162,7 +178,7 @@ export default function CanvasImageLoader() {
         console.log("onStagePointerDownCapture")
 
         const el = (e.target as HTMLElement).closest(
-            "[data-card-id]",
+            "[data-card-index]",
         ) as HTMLElement | null
 
         if (!el) {
@@ -238,8 +254,7 @@ export default function CanvasImageLoader() {
 
     return (
         <div>
-            {/* original look */}
-            <form onSubmit={onAdd} style={{ marginBottom: 10 }}>
+            {/* <form onSubmit={onAdd} style={{ marginBottom: 10 }}>
                 <input
                     type="text"
                     value={inputUrl}
@@ -248,7 +263,7 @@ export default function CanvasImageLoader() {
                     style={{ width: 300, marginRight: 10 }}
                 />
                 <button type="submit">Load</button>
-            </form>
+            </form> */}
 
             <div
                 ref={stageRef}
@@ -281,9 +296,7 @@ export default function CanvasImageLoader() {
             </div>
 
             {/* Example button to trigger grid layout */}
-            <button onClick={() => layoutCardsInGrid(cards)}>
-                Import deck
-            </button>
+            <button onClick={() => setCards(cards)}>Import deck</button>
         </div>
     )
 }
