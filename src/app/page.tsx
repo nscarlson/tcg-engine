@@ -22,11 +22,11 @@ const cardSets = [
     },
     {
         name: "Battle of Helm's Deep",
-        count: 124,
+        count: 128,
     },
     {
         name: "Ents of Fangorn",
-        count: 124,
+        count: 128,
     },
     {
         name: "Return of the King",
@@ -48,19 +48,43 @@ const cardSets = [
 
 interface GridProps {
     cardIds: string[]
+    groupDuplicates: boolean
 }
 // IMPORTANT: Mechanism to differentiate multiple instances of the same card within a list, grid, stack, etc
 // This is accomplished by a numerical index, which *should* be identical to the data-card-index attribute on the card's canvas
 
-const Grid = ({ cardIds }: GridProps) => {
+const Grid = ({ cardIds, groupDuplicates }: GridProps) => {
     // object keyed by card id -> array of card indices
 
-    const groups: Record<string, number[]> = {}
-
+    // reduce the array of cardIds to groups, where each unique cardId belongs to a group of one or more of the same cardId
     cardIds.forEach((cardId, idx) => {
         if (!groups[cardId]) groups[cardId] = []
+
         groups[cardId].push(idx)
     })
+
+    const groups: Record<string, number[]> = cardIds.reduce(
+        (groups, curr, index) => {
+            if (!groups[curr]) {
+                groups[curr] = []
+            }
+
+            groups[curr].push(index)
+
+            return groups
+        },
+        {} as Record<string, number[]>,
+    )
+
+    // TODO: preserve the unique index per card in every stack
+    // Prepare stacks for grid cells
+
+    if (groupDuplicates) {
+        const stacks = Object.entries(groups).map(([cardId, indices]) => ({
+            cardId,
+            count: indices.length,
+        }))
+    }
 
     return
 }
@@ -111,7 +135,7 @@ export default function CanvasImageLoader() {
         cardWidth: number,
         cardHeight: number,
         cardsPerRow = 10,
-        stackOffset = 20,
+        stackOffset = 15,
     ) {
         // Group cards by src
         const groups: Record<string, number[]> = {}
@@ -131,11 +155,11 @@ export default function CanvasImageLoader() {
         const rowHeights: number[] = []
 
         for (let i = 0; i < Math.ceil(stacks.length / cardsPerRow); i++) {
-            const rowStacks = stacks.slice(
+            const stackRows = stacks.slice(
                 i * cardsPerRow,
                 (i + 1) * cardsPerRow,
             )
-            const maxStack = Math.max(...rowStacks.map((s) => s.count), 1)
+            const maxStack = Math.max(...stackRows.map((s) => s.count), 1)
             rowHeights[i] = cardHeight + (maxStack - 1) * stackOffset
         }
 
@@ -144,11 +168,16 @@ export default function CanvasImageLoader() {
             cardId: string
             initial: { x: number; y: number }
         }[] = []
+
         let y = 0
         let stackIdx = 0
+
         for (let row = 0; row < rowHeights.length; row++) {
             for (let col = 0; col < cardsPerRow; col++) {
-                if (stackIdx >= stacks.length) break
+                if (stackIdx >= stacks.length) {
+                    break
+                }
+
                 const stack = stacks[stackIdx]
 
                 for (let s = 0; s < stack.count; s++) {
@@ -160,8 +189,10 @@ export default function CanvasImageLoader() {
                         },
                     })
                 }
+
                 stackIdx++
             }
+
             y += rowHeights[row]
         }
         return positions
@@ -250,8 +281,8 @@ export default function CanvasImageLoader() {
     }, [])
 
     // Card layout
-    const cardWidth = 120
-    const cardHeight = 180
+    const cardWidth = 115
+    const cardHeight = 150
     const grid = getStackedGridPositions(cards, cardWidth, cardHeight)
 
     return (

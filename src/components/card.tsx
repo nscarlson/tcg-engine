@@ -40,6 +40,8 @@ export default function Card({
     })
     const [isReady, setIsReady] = useState(false) // <-- updated name
 
+    const [isHovered, setIsHovered] = useState(false)
+
     useEffect(() => {
         const cardCanvas = canvasRef.current
         if (!cardCanvas) {
@@ -138,9 +140,17 @@ export default function Card({
 
     return (
         <canvas
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             ref={canvasRef}
             data-card-index={index} // <- parent uses this to identify the clicked card
             style={{
+                border: "5 solid red",
+                boxShadow:
+                    isReady && isHovered
+                        ? `0 0 10px 2px rgba(255, 255, 255, 0.6)`
+                        : "none",
+                transition: "box-shadow 0.2s ease-in-out",
                 position: "absolute",
                 top: 0,
                 left: 0,
