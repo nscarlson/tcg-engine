@@ -70,7 +70,7 @@ const cardSets = [
     },
     {
         name: "Rise of Saruman",
-        count: 122,
+        count: 148,
     },
     {
         name: "Treachery & Deceit",
