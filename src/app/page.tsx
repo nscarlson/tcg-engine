@@ -366,7 +366,9 @@ export default function CanvasImageLoader() {
                         <Card
                             index={hoveredCard.index}
                             cardId={hoveredCard.cardId}
-                            boundaryRef={bgCanvasRef as unknown as React.RefObject<HTMLElement>}
+                            boundaryRef={
+                                bgCanvasRef as unknown as React.RefObject<HTMLElement>
+                            }
                             initial={{ x: 0, y: 0 }}
                             finalScale={1}
                             oversampleFactor={2}
@@ -375,6 +377,32 @@ export default function CanvasImageLoader() {
                         />
                     </div>
                 )}
+
+                {/* Card back at bottom center */}
+                <div
+                    style={{
+                        position: "fixed",
+                        left: "50%",
+                        bottom: 24,
+                        transform: "translateX(-50%)",
+                        zIndex: 9999,
+                        pointerEvents: "none",
+                        background: "rgba(0,0,0,0.05)",
+                        padding: 8,
+                        borderRadius: 8,
+                    }}
+                >
+                    <Card
+                        index={-2}
+                        cardId={"/LOTR-EN_CARD_BACK.png"}
+                        boundaryRef={bgCanvasRef as unknown as React.RefObject<HTMLElement>}
+                        initial={{ x: 0, y: 0 }}
+                        finalScale={0.125} // <-- match grid scale
+                        oversampleFactor={2}
+                        zIndex={9999}
+                        isPreview={true}
+                    />
+                </div>
             </div>
         </div>
     )
