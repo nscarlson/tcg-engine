@@ -15,7 +15,10 @@ type Props = {
     finalScale?: number
     oversampleFactor?: number
     lockAxis?: "x" | "y"
-    zIndex?: number // <-- add zIndex prop
+    zIndex?: number
+    onHover?: () => void
+    onUnhover?: () => void
+    isPreview?: boolean
 }
 
 export default function Card({
@@ -27,6 +30,9 @@ export default function Card({
     oversampleFactor = 2,
     lockAxis,
     zIndex = 0,
+    onHover,
+    onUnhover,
+    isPreview = false,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const { offset, dragging } = useBoundedDrag({
@@ -147,25 +153,31 @@ export default function Card({
             data-card-id={cardId}
             style={{
                 border: "5 solid red",
+                position: isPreview ? "static" : "absolute",
+                top: isPreview ? undefined : 0,
+                left: isPreview ? undefined : 0,
+                zIndex,
+                imageRendering: "auto",
+                width: cssSize.w ? `${cssSize.w}px` : undefined,
+                height: cssSize.h ? `${cssSize.h}px` : undefined,
                 boxShadow:
                     isReady && isHovered
                         ? `0 0 10px 2px rgba(255, 255, 255, 0.6)`
                         : "none",
                 transition: "box-shadow 0.2s ease-in-out",
-                position: "absolute",
-                top: 0,
-                left: 0,
-                zIndex,
-                imageRendering: "auto",
-                width: cssSize.w ? `${cssSize.w}px` : undefined,
-                height: cssSize.h ? `${cssSize.h}px` : undefined,
-                transform: `translate(${offset.x}px, ${offset.y}px)`,
                 cursor: dragging ? "grabbing" : "grab",
                 willChange: "transform",
-                visibility: isReady ? "visible" : "hidden", // <-- keep canvas in DOM but hide it
+                visibility: isReady ? "visible" : "hidden",
+                transform: isPreview ? undefined : `translate(${offset.x}px, ${offset.y}px)`,
             }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={() => {
+                setIsHovered(true)
+                onHover?.()
+            }}
+            onMouseLeave={() => {
+                setIsHovered(false)
+                onUnhover?.()
+            }}
         />
     )
 }

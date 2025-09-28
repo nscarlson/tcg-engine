@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import Card from "../components/card"
-import { count } from "console"
 
 const cardSets = [
     {
@@ -128,6 +127,10 @@ export default function CanvasImageLoader() {
 
     const [cards, setCards] = useState<string[]>([])
     const [zIndices, setZIndices] = useState<Record<number, number>>({})
+    const [hoveredCard, setHoveredCard] = useState<{
+        index: number
+        cardId: string
+    } | null>(null)
 
     useEffect(() => {
         if (cards.length === 0) {
@@ -339,10 +342,40 @@ export default function CanvasImageLoader() {
                         finalScale={0.125}
                         oversampleFactor={2}
                         zIndex={zIndices[idx] ?? 0}
+                        onHover={() =>
+                            setHoveredCard({ index: idx, cardId: g.cardId })
+                        }
+                        onUnhover={() => setHoveredCard(null)}
                     />
                 ))}
+
+                {/* Persistent preview card at top right */}
+                {hoveredCard && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 24,
+                            right: 24,
+                            zIndex: 9999,
+                            pointerEvents: "none",
+                            background: "rgba(0,0,0,0.05)",
+                            padding: 8,
+                            borderRadius: 8,
+                        }}
+                    >
+                        <Card
+                            index={hoveredCard.index}
+                            cardId={hoveredCard.cardId}
+                            boundaryRef={bgCanvasRef as unknown as React.RefObject<HTMLElement>}
+                            initial={{ x: 0, y: 0 }}
+                            finalScale={1}
+                            oversampleFactor={2}
+                            zIndex={9999}
+                            isPreview={true}
+                        />
+                    </div>
+                )}
             </div>
-            {/* ...existing code... */}
         </div>
     )
 }
