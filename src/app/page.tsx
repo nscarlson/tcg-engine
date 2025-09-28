@@ -127,10 +127,12 @@ export default function CanvasImageLoader() {
 
     const [cards, setCards] = useState<string[]>([])
     const [zIndices, setZIndices] = useState<Record<number, number>>({})
-    const [hoveredCard, setHoveredCard] = useState<{
+    const [previewCard, setPreviewCard] = useState<{
         index: number
         cardId: string
     } | null>(null)
+    const [previewVisible, setPreviewVisible] = useState(false)
+    const fadeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
         if (cards.length === 0) {
@@ -342,30 +344,43 @@ export default function CanvasImageLoader() {
                         finalScale={0.125}
                         oversampleFactor={2}
                         zIndex={zIndices[idx] ?? 0}
-                        onHover={() =>
-                            setHoveredCard({ index: idx, cardId: g.cardId })
-                        }
-                        onUnhover={() => setHoveredCard(null)}
+                        onHover={() => {
+                            // Clear any pending fade-out
+                            if (fadeTimeoutRef.current) {
+                                clearTimeout(fadeTimeoutRef.current)
+                                fadeTimeoutRef.current = null
+                            }
+                            setPreviewCard({ index: idx, cardId: g.cardId })
+                            setPreviewVisible(true)
+                        }}
+                        onUnhover={() => {
+                            // Start fade-out after 1 second
+                            fadeTimeoutRef.current = setTimeout(() => {
+                                setPreviewVisible(false)
+                            }, 1500)
+                        }}
                     />
                 ))}
 
-                {/* Persistent preview card at top right */}
-                {hoveredCard && (
-                    <div
-                        style={{
-                            position: "fixed",
-                            top: 24,
-                            right: 24,
-                            zIndex: 9999,
-                            pointerEvents: "none",
-                            background: "rgba(0,0,0,0.05)",
-                            padding: 8,
-                            borderRadius: 8,
-                        }}
-                    >
+                {/* Persistent preview card at top right with fade effect */}
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 24,
+                        right: 24,
+                        zIndex: 9999,
+                        pointerEvents: "none",
+                        background: "rgba(0,0,0,0.05)",
+                        padding: 8,
+                        borderRadius: 8,
+                        opacity: previewVisible ? 1 : 0,
+                        transition: "opacity 0.3s ease",
+                    }}
+                >
+                    {previewCard && (
                         <Card
-                            index={hoveredCard.index}
-                            cardId={hoveredCard.cardId}
+                            index={previewCard.index}
+                            cardId={previewCard.cardId}
                             boundaryRef={
                                 bgCanvasRef as unknown as React.RefObject<HTMLElement>
                             }
@@ -375,8 +390,8 @@ export default function CanvasImageLoader() {
                             zIndex={9999}
                             isPreview={true}
                         />
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {/* Card back at bottom center */}
                 <div
@@ -395,7 +410,9 @@ export default function CanvasImageLoader() {
                     <Card
                         index={-2}
                         cardId={"/LOTR-EN_CARD_BACK.png"}
-                        boundaryRef={bgCanvasRef as unknown as React.RefObject<HTMLElement>}
+                        boundaryRef={
+                            bgCanvasRef as unknown as React.RefObject<HTMLElement>
+                        }
                         initial={{ x: 0, y: 0 }}
                         finalScale={0.125} // <-- match grid scale
                         oversampleFactor={2}
