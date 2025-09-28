@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Card from "../components/card"
+import { count } from "console"
 
 const cardSets = [
     {
@@ -43,6 +44,38 @@ const cardSets = [
     {
         name: "Mount Doom",
         count: 122, // This set is not available in the original code, but added for completeness
+    },
+    {
+        name: "Shadows",
+        count: 122,
+    },
+    {
+        name: "Black Rider",
+        count: 122,
+    },
+    {
+        name: "Bloodlines",
+        count: 122,
+    },
+    {
+        name: "Expanded Middle Earth",
+        count: 9,
+    },
+    {
+        name: "The Hunters",
+        count: 194,
+    },
+    {
+        name: "Wraith",
+        count: 6,
+    },
+    {
+        name: "Rise of Saruman",
+        count: 122,
+    },
+    {
+        name: "Treachery & Deceit",
+        count: 122,
     },
 ]
 
@@ -94,6 +127,7 @@ export default function CanvasImageLoader() {
     const stageRef = useRef<HTMLDivElement | null>(null)
 
     const [cards, setCards] = useState<string[]>([])
+    const [zIndices, setZIndices] = useState<Record<number, number>>({})
 
     useEffect(() => {
         if (cards.length === 0) {
@@ -204,35 +238,22 @@ export default function CanvasImageLoader() {
     //     setCards((prev) => [...prev, inputUrl])
     // }
 
-    // Bring clicked card to front by moving it to end of the array
-    const onStagePointerDownCapture = (
-        e: React.PointerEvent<HTMLDivElement>,
-    ) => {
-        console.log("onStagePointerDownCapture")
-
+    // Set z-index of clicked card to highest
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         const el = (e.target as HTMLElement).closest(
-            "[data-card-index]",
+            "[data-card-id]",
         ) as HTMLElement | null
+        if (!el) return
 
-        if (!el) {
-            console.log("no card found")
-            return
-        }
+        const cardIndexStr = el.getAttribute("data-card-index")
+        if (!cardIndexStr) return
 
-        const cardId = el.getAttribute("src")
+        const cardIndex = parseInt(cardIndexStr, 10)
+        if (isNaN(cardIndex)) return
 
-        setCards((prev) => {
-            const idx = prev.findIndex((s) => s === cardId)
-
-            if (idx === -1) {
-                return prev
-            }
-
-            const next = prev.slice()
-            const [picked] = next.splice(idx, 1)
-
-            next.push(picked)
-            return next
+        setZIndices((prev) => {
+            const maxZ = Math.max(0, ...Object.values(prev))
+            return { ...prev, [cardIndex]: maxZ + 1 }
         })
     }
 
@@ -240,6 +261,7 @@ export default function CanvasImageLoader() {
     useEffect(() => {
         const bgCanvas = bgCanvasRef.current
         const ctx = bgCanvas?.getContext("2d")
+
         if (!bgCanvas || !ctx) {
             return
         }
@@ -257,7 +279,10 @@ export default function CanvasImageLoader() {
 
             const iw = bgImg.width
             const ih = bgImg.height
-            if (!iw || !ih) return
+
+            if (!iw || !ih) {
+                return
+            }
 
             const scale = Math.max(cw / iw, ch / ih)
             const drawWidth = iw * scale
@@ -287,20 +312,9 @@ export default function CanvasImageLoader() {
 
     return (
         <div>
-            {/* <form onSubmit={onAdd} style={{ marginBottom: 10 }}>
-                <input
-                    type="text"
-                    value={inputUrl}
-                    onChange={(e) => setInputUrl(e.target.value)}
-                    placeholder="/LOTR-EN01151.png"
-                    style={{ width: 300, marginRight: 10 }}
-                />
-                <button type="submit">Load</button>
-            </form> */}
-
             <div
                 ref={stageRef}
-                onPointerDownCapture={onStagePointerDownCapture} // <- one handler for all cards
+                onPointerDownCapture={handlePointerDown}
                 style={{
                     position: "relative",
                     width: "100vw",
@@ -316,7 +330,7 @@ export default function CanvasImageLoader() {
                 {grid.map((g, idx) => (
                     <Card
                         key={idx}
-                        id={idx}
+                        index={idx}
                         cardId={g.cardId}
                         boundaryRef={
                             bgCanvasRef as unknown as React.RefObject<HTMLElement>
@@ -324,12 +338,11 @@ export default function CanvasImageLoader() {
                         initial={g.initial}
                         finalScale={0.125}
                         oversampleFactor={2}
+                        zIndex={zIndices[idx] ?? 0}
                     />
                 ))}
             </div>
-
-            {/* Example button to trigger grid layout */}
-            <button onClick={() => setCards(cards)}>Import deck</button>
+            {/* ...existing code... */}
         </div>
     )
 }

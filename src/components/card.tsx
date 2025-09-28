@@ -15,6 +15,7 @@ type Props = {
     finalScale?: number
     oversampleFactor?: number
     lockAxis?: "x" | "y"
+    zIndex?: number // <-- add zIndex prop
 }
 
 export default function Card({
@@ -25,6 +26,7 @@ export default function Card({
     finalScale = 1,
     oversampleFactor = 2,
     lockAxis,
+    zIndex = 0,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const { offset, dragging } = useBoundedDrag({
@@ -140,10 +142,9 @@ export default function Card({
 
     return (
         <canvas
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
             ref={canvasRef}
-            data-card-index={index} // <- parent uses this to identify the clicked card
+            data-card-index={index}
+            data-card-id={cardId}
             style={{
                 border: "5 solid red",
                 boxShadow:
@@ -154,7 +155,7 @@ export default function Card({
                 position: "absolute",
                 top: 0,
                 left: 0,
-                zIndex: 0,
+                zIndex,
                 imageRendering: "auto",
                 width: cssSize.w ? `${cssSize.w}px` : undefined,
                 height: cssSize.h ? `${cssSize.h}px` : undefined,
@@ -163,6 +164,8 @@ export default function Card({
                 willChange: "transform",
                 visibility: isReady ? "visible" : "hidden", // <-- keep canvas in DOM but hide it
             }}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         />
     )
 }
