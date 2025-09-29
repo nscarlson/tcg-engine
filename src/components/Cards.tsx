@@ -168,7 +168,9 @@ export default function Card({
                 cursor: dragging ? "grabbing" : "grab",
                 willChange: "transform",
                 visibility: isReady ? "visible" : "hidden",
-                transform: isPreview ? undefined : `translate(${offset.x}px, ${offset.y}px)`,
+                transform: isPreview
+                    ? undefined
+                    : `translate(${offset.x}px, ${offset.y}px)`,
             }}
             onMouseEnter={() => {
                 setIsHovered(true)
