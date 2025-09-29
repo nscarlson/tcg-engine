@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import Card from "../components/card"
+import Card from "../components/Card"
+import CardHoverPreview from "@/components/CardHoverPreview"
 
 const cardSets = [
     {
@@ -362,36 +363,11 @@ export default function CanvasImageLoader() {
                     />
                 ))}
 
-                {/* Persistent preview card at top right with fade effect */}
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 24,
-                        right: 24,
-                        zIndex: 9999,
-                        pointerEvents: "none",
-                        background: "rgba(0,0,0,0.05)",
-                        padding: 8,
-                        borderRadius: 8,
-                        opacity: previewVisible ? 1 : 0,
-                        transition: "opacity 0.3s ease",
-                    }}
-                >
-                    {previewCard && (
-                        <Card
-                            index={previewCard.index}
-                            cardId={previewCard.cardId}
-                            boundaryRef={
-                                bgCanvasRef as unknown as React.RefObject<HTMLElement>
-                            }
-                            initial={{ x: 0, y: 0 }}
-                            finalScale={1}
-                            oversampleFactor={2}
-                            zIndex={9999}
-                            isPreview={true}
-                        />
-                    )}
-                </div>
+                <CardHoverPreview
+                    previewCard={previewCard}
+                    showPreview={previewVisible}
+                    bgCanvasRef={bgCanvasRef as React.RefObject<HTMLElement>}
+                />
 
                 {/* Card back at bottom center */}
                 <div
@@ -414,7 +390,7 @@ export default function CanvasImageLoader() {
                             bgCanvasRef as unknown as React.RefObject<HTMLElement>
                         }
                         initial={{ x: 0, y: 0 }}
-                        finalScale={0.125} // <-- match grid scale
+                        finalScale={0.125}
                         oversampleFactor={2}
                         zIndex={9999}
                         isPreview={true}
