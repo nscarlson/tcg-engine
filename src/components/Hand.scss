@@ -1,0 +1,20 @@
+.hand {
+    position: absolute;
+    $angle: 50deg;
+
+    @for $i from 1 through 5 {
+        canvas:nth-child(#{$i}) {
+            transform: translate(-50%, -50%)
+                rotate(-$angle / 2 + $angle / 6 * $i);
+        }
+    }
+}
+
+.hand-card {
+    height: 200px;
+    width: 150px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-origin: center 120%;
+}

@@ -10,6 +10,7 @@ import { useBoundedDrag } from "../hooks/useBoundedDrag"
 type Props = {
     index: number
     cardId: string
+    className?: string
     boundaryRef: React.RefObject<HTMLElement>
     initial?: { x: number; y: number }
     finalScale?: number
@@ -19,11 +20,13 @@ type Props = {
     onHover?: () => void
     onUnhover?: () => void
     isPreview?: boolean
+    transform?: string
 }
 
 export default function Card({
     index,
     cardId,
+    className,
     boundaryRef,
     initial = { x: 0, y: 0 },
     finalScale = 1,
@@ -33,6 +36,7 @@ export default function Card({
     onHover,
     onUnhover,
     isPreview = false,
+    transform,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
     const { offset, dragging } = useBoundedDrag({
@@ -41,6 +45,13 @@ export default function Card({
         initial,
         lockAxis,
     })
+
+    // Combine drag offset with transform prop if present
+    let combinedTransform = transform
+    if (!transform) {
+        // Default: use drag offset for grid cards
+        combinedTransform = `translate(${offset.x}px, ${offset.y}px)`
+    }
 
     const [cssSize, setCssSize] = useState<{ w: number; h: number }>({
         w: 0,
@@ -148,6 +159,7 @@ export default function Card({
 
     return (
         <canvas
+            className={className}
             ref={canvasRef}
             data-card-index={index}
             data-card-id={cardId}
@@ -168,9 +180,7 @@ export default function Card({
                 cursor: dragging ? "grabbing" : "grab",
                 willChange: "transform",
                 visibility: isReady ? "visible" : "hidden",
-                transform: isPreview
-                    ? undefined
-                    : `translate(${offset.x}px, ${offset.y}px)`,
+                transform: combinedTransform, // <-- use the prop directly
             }}
             onMouseEnter={() => {
                 setIsHovered(true)

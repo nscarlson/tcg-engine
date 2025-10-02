@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import Card from "../components/Card"
 import CardHoverPreview from "@/components/CardHoverPreview"
+import DrawDeck from "@/components/DrawDeck"
+import Hand from "@/components/Hand"
 
 const cardSets = [
     {
@@ -369,33 +371,22 @@ export default function CanvasImageLoader() {
                     bgCanvasRef={bgCanvasRef as React.RefObject<HTMLElement>}
                 />
 
-                {/* Card back at bottom center */}
-                <div
-                    style={{
-                        position: "fixed",
-                        left: "50%",
-                        bottom: 24,
-                        transform: "translateX(-50%)",
-                        zIndex: 9999,
-                        pointerEvents: "none",
-                        background: "rgba(0,0,0,0.05)",
-                        padding: 8,
-                        borderRadius: 8,
-                    }}
-                >
-                    <Card
-                        index={-2}
-                        cardId={"/LOTR-EN_CARD_BACK.png"}
-                        boundaryRef={
-                            bgCanvasRef as unknown as React.RefObject<HTMLElement>
-                        }
-                        initial={{ x: 0, y: 0 }}
-                        finalScale={0.125}
-                        oversampleFactor={2}
-                        zIndex={9999}
-                        isPreview={true}
-                    />
-                </div>
+                <DrawDeck
+                    bgCanvasRef={
+                        bgCanvasRef as React.RefObject<HTMLCanvasElement>
+                    }
+                />
+
+                <Hand
+                    boundaryRef={bgCanvasRef as React.RefObject<HTMLElement>}
+                    cardIds={[
+                        "/LOTR-EN05090.png",
+                        "/LOTR-EN01090.png",
+                        "/LOTR-EN02090.png",
+                        "/LOTR-EN03090.png",
+                        "/LOTR-EN04090.png",
+                    ]}
+                />
             </div>
         </div>
     )
