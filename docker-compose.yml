@@ -1,0 +1,33 @@
+services:
+  lotr-db:
+    container_name: lotr-db
+    image: postgres
+    environment:
+      POSTGRES_USER: lotr
+      POSTGRES_PASSWORD: lotr
+      POSTGRES_DB: lotr
+    ports:
+      - '5432:5432'
+    restart: always
+    networks:
+      - lotr
+
+  nginx:
+    container_name: nginx
+    image: nginx:1.29.2
+    ports:
+      - '8787:8787'
+    volumes:
+      # Mount your custom nginx.conf into the container
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+      # Mount your static files directory into /var/www/lotr/static
+      - /var/www/lotr/static/images:/var/www/lotr/static/images:ro
+    restart: always
+    networks:
+      - lotr
+
+networks:
+  lotr:
+    driver: bridge
+
