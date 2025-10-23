@@ -1,27 +1,38 @@
 {
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+    "compilerOptions": {
+        // Process & infer types from .js files.
+        "allowJs": false,
+        "allowSyntheticDefaultImports": true,
+        // "composite": true,
+        "declaration": true,
+        "declarationMap": true,
+        "emitDecoratorMetadata": true,
+        // Import non-ES modules as default imports.
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
+        // Disallow features that require cross-file information for emit.
+        "isolatedModules": false,
+        "jsx": "preserve",
+        "module": "commonjs",
+        // Search under node_modules for non-relative imports.
+        "moduleResolution": "node",
+        "typeRoots": [
+            "./node_modules/@types"
+        ] /* Specify multiple folders that act like './node_modules/@types'. */,
+        "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "resolveJsonModule": true,
+        "rootDir": "./",
+        "skipLibCheck": true,
+        "sourceMap": true,
+        // Enable strictest settings like strictNullChecks & noImplicitAny.
+        "strict": true,
+        "strictPropertyInitialization": false,
+        // Target latest version of ECMAScript.
+        "target": "ESNext",
+        "outDir": "dist"
+    },
+    "include": ["./src", "./scripts"],
+    "exclude": ["**/coverage", "**/dist", "**/build", "node_modules"]
 }

@@ -1,29 +1,41 @@
 {
-  "name": "tcg-engine",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "15.3.4",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "sass": "1.93.2"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "3",
-    "@tailwindcss/postcss": "4",
-    "@types/node": "20",
-    "@types/react": "19",
-    "@types/react-dom": "19",
-    "eslint": "9",
-    "eslint-config-next": "15.3.4",
-    "tailwindcss": "4",
-    "typescript": "5"
-  },
-  "packageManager": "yarn@4.9.3"
+    "name": "tcg-engine",
+    "version": "0.1.0",
+    "private": true,
+    "type": "commonjs",
+    "scripts": {
+        "dev": "next dev --turbopack",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "db:seed:lotr": "ts-node ./scripts/db/seed-lotr.ts ./scripts/db/lotr-db.xlsx",
+        "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
+    },
+    "dependencies": {
+        "dotenv": "17.2.3",
+        "next": "15.3.4",
+        "p-map": "^7.0.3",
+        "pg": "8.16.3",
+        "react": "19.0.0",
+        "react-dom": "19.0.0",
+        "sass": "1.93.2",
+        "sharp": "^0.34.4",
+        "typeorm": "0.3.27"
+    },
+    "devDependencies": {
+        "@eslint/eslintrc": "3",
+        "@tailwindcss/postcss": "4",
+        "@types/node": "24.1.0",
+        "@types/pg": "8.15.5",
+        "@types/react": "19",
+        "@types/react-dom": "19",
+        "@types/yargs": "17.0.33",
+        "eslint": "9",
+        "eslint-config-next": "15.3.4",
+        "tailwindcss": "4",
+        "ts-node": "10.9.2",
+        "typeorm-ts-node-esm": "^0.3.20",
+        "typescript": "^5.9.2"
+    },
+    "packageManager": "yarn@4.9.3"
 }
