@@ -14,7 +14,7 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx:1.29.2
+    image: nginx:1.29.3
     ports:
       - '8787:8787'
     volumes:
