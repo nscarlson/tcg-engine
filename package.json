@@ -12,7 +12,7 @@
     },
     "dependencies": {
         "dotenv": "17.2.3",
-        "next": "15.3.4",
+        "next": "16.0.1",
         "p-map": "^7.0.3",
         "pg": "8.16.3",
         "react": "19.0.0",
@@ -30,7 +30,7 @@
         "@types/react-dom": "19",
         "@types/yargs": "17.0.33",
         "eslint": "9",
-        "eslint-config-next": "15.3.4",
+        "eslint-config-next": "16.0.1",
         "tailwindcss": "4",
         "ts-node": "10.9.2",
         "typeorm-ts-node-esm": "^0.3.20",
